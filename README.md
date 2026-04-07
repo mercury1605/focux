@@ -35,25 +35,27 @@ Build production app:
 
 ## Folder Structure
 
+```text
 focux/
-├── src-tauri/ # Rust + Tauri backend
-│ ├── Cargo.toml
-│ ├── tauri.conf.json
-│ └── src/
-│ ├── lib.rs # Tauri setup / commands registration
-│ ├── commands/ # Invokable commands from frontend
-│ ├── system/ # App scanning / icon extraction / OS logic
-│ └── utils/
-├── src/ # Frontend (TypeScript + CSS)
-│ ├── main.ts
-│ ├── views/
-│ ├── components/
-│ ├── services/
-│ ├── utils/
-│ └── styles/
+├── src-tauri/                # Rust + Tauri backend
+│   ├── Cargo.toml
+│   ├── tauri.conf.json
+│   └── src/
+│       ├── lib.rs            # Tauri setup / commands registration
+│       ├── commands/         # Invokable commands from frontend
+│       ├── system/           # App scanning / icon extraction / OS logic
+│       └── utils/
+├── src/                      # Frontend (TypeScript + CSS)
+│   ├── main.ts
+│   ├── views/
+│   ├── components/
+│   ├── services/
+│   ├── utils/
+│   └── styles/
 ├── index.html
 ├── package.json
 └── vite.config.ts
+```
 
 ## Notes
 
