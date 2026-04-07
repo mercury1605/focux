@@ -1,0 +1,151 @@
+/* src/styles/content.css */
+.content-container {
+  /* Tự co giãn theo chiều cao cửa sổ */
+  height: calc(100% - var(--search-bar-height, 50px) - 40px);
+  display: flex;
+  /* Chia dọc */
+  overflow: hidden;
+  padding: 0 var(--spacing-default) var(--spacing-default);
+  gap: var(--spacing-default);
+}
+
+.results-list {
+  width: var(--results-width-percent, 50%);
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 6px;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.results-list::-webkit-scrollbar {
+  display: none;
+}
+
+.preview-pane {
+  width: var(--preview-width-percent, 50%);
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  overflow-y: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.preview-pane::-webkit-scrollbar {
+  display: none;
+}
+
+.result-item {
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: var(--border-radius-item);
+  border: 1px solid transparent;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.result-item+.result-item {
+  margin-top: 4px;
+}
+
+.result-item.active {
+  background: var(--highlight-selection-bg);
+  border-color: rgba(190, 255, 130, 0.35);
+}
+
+.result-item:hover {
+  background: var(--panel-hover);
+}
+
+.result-icon {
+  width: 24px;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.result-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--highlight-title-color);
+  line-height: 1.25;
+}
+
+.result-kind {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.preview-icon {
+  width: 36px;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+}
+
+.preview-title {
+  font-size: 1.95rem;
+  color: var(--highlight-title-color);
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.preview-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.preview-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 12px;
+  border-radius: 999px;
+  font-size: 10px;
+  background: var(--accent-blue);
+  color: #fff;
+  font-weight: 600;
+}
+
+.preview-bytes {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.preview-grid {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  row-gap: 10px;
+  column-gap: 10px;
+}
+
+.preview-label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.preview-value {
+  color: var(--text-color);
+  word-break: break-word;
+}
+
+.preview-empty {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-top: 8px;
+}

@@ -1,0 +1,16 @@
+/* src/styles/footer.css */
+.footer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--spacing-default);
+    font-size: 12px;
+    color: var(--text-muted);
+    background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.35));
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
