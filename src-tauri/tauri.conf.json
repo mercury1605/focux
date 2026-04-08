@@ -14,9 +14,9 @@
     "windows": [
       {
         "title": "Focux",
-        "width": 700,
-        "height": 550,
-        "resizable": true,
+        "width": 800,
+        "height": 650,
+        "resizable": false,
         "center": true,
         "decorations": false,
         "transparent": true,

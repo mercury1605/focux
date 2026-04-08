@@ -49,4 +49,25 @@ html {
   display: flex;
   flex-direction: column;
   box-shadow: 0 16px 50px rgba(0, 0, 0, 0.58);
+  isolation: isolate;
+}
+
+#app::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--app-bg-image, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: var(--app-bg-opacity, 0);
+  filter: blur(var(--app-bg-blur, 0px));
+  transform: scale(1.04);
+  z-index: 0;
+  pointer-events: none;
+}
+
+#app>* {
+  position: relative;
+  z-index: 1;
 }

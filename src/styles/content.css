@@ -84,6 +84,29 @@
   color: var(--text-muted);
 }
 
+.result-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.result-dot {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.result-path {
+  font-size: 0.75rem;
+  color: #d4ae6f;
+  opacity: 0.95;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .preview-header {
   display: flex;
   align-items: center;
@@ -98,7 +121,7 @@
 }
 
 .preview-title {
-  font-size: 1.95rem;
+  font-size: 1.45rem;
   color: var(--highlight-title-color);
   font-weight: 650;
   line-height: 1.5;
@@ -109,6 +132,21 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
+}
+
+.clipboard-delete-btn {
+  margin-left: auto;
+  border: 1px solid rgba(255, 120, 120, 0.45);
+  background: rgba(120, 10, 10, 0.25);
+  color: #ffc7c7;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.clipboard-delete-btn:hover {
+  background: rgba(140, 20, 20, 0.35);
 }
 
 .preview-pill {
@@ -142,10 +180,37 @@
 .preview-value {
   color: var(--text-color);
   word-break: break-word;
+  font-size: 0.85em;
 }
 
 .preview-empty {
   color: var(--text-muted);
   font-size: 14px;
   margin-top: 8px;
+}
+
+.clipboard-preview-box {
+  margin-top: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px;
+}
+
+.clipboard-preview-text {
+  color: var(--text-color);
+  font-size: 0.85rem;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.clipboard-preview-image {
+  display: block;
+  max-width: 100%;
+  max-height: 180px;
+  object-fit: contain;
+  margin: 0 auto;
 }

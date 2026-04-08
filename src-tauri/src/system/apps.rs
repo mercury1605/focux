@@ -12,6 +12,21 @@ pub struct AppInfo {
     pub path: String,
     pub kind: String,
     pub icon: Option<String>, // Thêm trường icon (Base64 string)
+    #[serde(rename = "sizeBytes", skip_serializing_if = "Option::is_none")]
+    pub size_bytes: Option<u64>,
+    #[serde(rename = "entryId", skip_serializing_if = "Option::is_none")]
+    pub entry_id: Option<String>,
+    #[serde(rename = "charCount", skip_serializing_if = "Option::is_none")]
+    pub char_count: Option<u64>,
+    #[serde(rename = "clipboardText", skip_serializing_if = "Option::is_none")]
+    pub clipboard_text: Option<String>,
+    #[serde(
+        rename = "clipboardImageDataUrl",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub clipboard_image_data_url: Option<String>,
+    #[serde(rename = "clipboardType", skip_serializing_if = "Option::is_none")]
+    pub clipboard_type: Option<String>,
 }
 
 pub fn get_installed_apps() -> Vec<AppInfo> {
@@ -76,6 +91,12 @@ fn scan_directory(dir: &Path, apps: &mut Vec<AppInfo>) {
                             path: path.to_string_lossy().to_string(), // Đường dẫn đầy đủ
                             kind: "App".to_string(),
                             icon: None,
+                            size_bytes: path.metadata().ok().map(|m| m.len()),
+                            entry_id: None,
+                            char_count: None,
+                            clipboard_text: None,
+                            clipboard_image_data_url: None,
+                            clipboard_type: None,
                         });
                     }
                 }
