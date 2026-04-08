@@ -4,6 +4,7 @@ mod system;
 use commands::app_cmd;
 use std::str::FromStr;
 use tauri::Manager;
+use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState}; // Import command vừa tạo
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -12,8 +13,22 @@ pub fn run() {
         // ĐĂNG KÝ COMMAND TẠI ĐÂY
         .invoke_handler(tauri::generate_handler![
             app_cmd::fetch_apps,
+            app_cmd::search_folders_cmd,
+            app_cmd::set_folder_index_options_cmd,
+            app_cmd::set_launch_with_windows_cmd,
+            app_cmd::get_launch_with_windows_cmd,
+            app_cmd::save_config_json_cmd,
+            app_cmd::load_config_json_cmd,
+            app_cmd::save_background_image_asset_cmd,
+            app_cmd::save_font_asset_cmd,
+            app_cmd::search_clipboard_cmd,
+            app_cmd::delete_clipboard_item_cmd,
             app_cmd::launch_app
         ])
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            None::<Vec<&'static str>>,
+        ))
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(move |app, shortcut, event| {

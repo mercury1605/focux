@@ -3,8 +3,22 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import Fuse from "fuse.js";
 import { setupSearchBar } from "../components/searchBar";
 import { debounce } from "../utils/debounce";
-import { AppInfo, fetchAppsFromSystem, launchApp } from "../services/commands";
+import {
+  AppInfo,
+  deleteClipboardItemFromSystem,
+  fetchAppsFromSystem,
+  launchApp,
+  searchClipboardFromSystem,
+  searchFoldersFromSystem,
+} from "../services/commands";
 import { renderResultsList } from "../components/resultList";
+import {
+  CLIPBOARD_ICON_DATA_URI,
+  CLIPBOARD_SEARCH_PREFIX,
+  FOLDER_ICON_DATA_URI,
+  FOLDER_SEARCH_PREFIX,
+} from "../utils/constants";
+import { getCurrentLanguage, t } from "../services/i18n";
 
 const appWindow = getCurrentWindow();
 
@@ -13,8 +27,46 @@ let allApps: AppInfo[] = []; // Chứa toàn bộ app lấy từ hệ thống
 let filteredApps: AppInfo[] = []; // Chứa app đang hiển thị
 let selectedIndex = 0; // Vị trí đang highlight
 let appSearchIndex: Fuse<AppInfo> | null = null;
+let searchRequestId = 0;
 
 const MAX_VISIBLE_RESULTS = 40;
+
+function formatResultSize(sizeBytes?: number): string {
+  if (sizeBytes == null || Number.isNaN(sizeBytes)) {
+    return t("search.unknownSize", getCurrentLanguage());
+  }
+
+  const units = ["bytes", "KB", "MB", "GB", "TB"];
+  let value = sizeBytes;
+  let unitIndex = 0;
+
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+
+  if (unitIndex === 0) {
+    return `${Math.round(value)} bytes`;
+  }
+
+  const rounded = Math.round(value * 10) / 10;
+  const display = Number.isInteger(rounded) ? `${rounded}` : rounded.toFixed(1);
+  return `${display} ${units[unitIndex]}`;
+}
+
+function formatCharCount(charCount?: number): string {
+  const safe = Math.max(0, charCount ?? 0);
+  return `${safe.toLocaleString()} ${t("search.chars", getCurrentLanguage())}`;
+}
+
+function escapeHtml(input: string): string {
+  return input
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 function buildSearchIndex(apps: AppInfo[]) {
   appSearchIndex = new Fuse(apps, {
@@ -53,6 +105,22 @@ function searchApps(query: string): AppInfo[] {
     .map((r) => r.item);
 }
 
+async function searchWithPrefix(query: string): Promise<AppInfo[]> {
+  const q = query.trim();
+
+  if (q.startsWith(CLIPBOARD_SEARCH_PREFIX)) {
+    const clipboardQuery = q.slice(CLIPBOARD_SEARCH_PREFIX.length).trim();
+    return searchClipboardFromSystem(clipboardQuery);
+  }
+
+  if (!q.startsWith(FOLDER_SEARCH_PREFIX)) {
+    return searchApps(q);
+  }
+
+  const folderQuery = q.slice(FOLDER_SEARCH_PREFIX.length).trim();
+  return searchFoldersFromSystem(folderQuery);
+}
+
 function scrollActiveResultIntoView() {
   const list = document.getElementById("results-list");
   const active = list?.querySelector(
@@ -76,9 +144,34 @@ function renderPreviewPane(app: AppInfo | null) {
     return;
   }
 
-  const iconMarkup = app.icon
-    ? `<img src="${app.icon}" class="preview-icon" />`
+  const previewIcon =
+    app.icon ||
+    (app.kind === "Folder"
+      ? FOLDER_ICON_DATA_URI
+      : app.kind === "Clipboard"
+        ? CLIPBOARD_ICON_DATA_URI
+        : null);
+
+  const iconMarkup = previewIcon
+    ? `<img src="${previewIcon}" class="preview-icon" />`
     : `<div class="preview-icon" style="display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08);border-radius:10px;">🧩</div>`;
+
+  const metric =
+    app.kind === "Clipboard"
+      ? formatCharCount(app.charCount)
+      : formatResultSize(app.sizeBytes);
+
+  const clipboardPreview =
+    app.kind !== "Clipboard"
+      ? ""
+      : app.clipboardType === "image" && app.clipboardImageDataUrl
+        ? `<div class="clipboard-preview-box"><img src="${app.clipboardImageDataUrl}" class="clipboard-preview-image" /></div>`
+        : `<div class="clipboard-preview-box clipboard-preview-text">${escapeHtml(app.clipboardText || "")}</div>`;
+
+  const clipboardActions =
+    app.kind === "Clipboard"
+      ? `<button id="clipboard-delete-btn" class="clipboard-delete-btn" type="button" title="Delete clipboard item (Ctrl+D)">${t("search.deleteClipboard", getCurrentLanguage())}</button>`
+      : "";
 
   preview.innerHTML = `
     <div class="preview-header">
@@ -87,33 +180,53 @@ function renderPreviewPane(app: AppInfo | null) {
         <div class="preview-title">${app.name}</div>
         <div class="preview-meta">
           <span class="preview-pill">${app.kind}</span>
-          <span class="preview-bytes">ready</span>
+          <span class="preview-bytes">${metric}</span>
         </div>
       </div>
+      ${clipboardActions}
     </div>
 
     <div class="preview-grid">
-      <div class="preview-label">Kind</div>
+      <div class="preview-label">${t("search.kind", getCurrentLanguage())}</div>
       <div class="preview-value">${app.kind}</div>
 
-      <div class="preview-label">Path</div>
+      <div class="preview-label">${t("search.path", getCurrentLanguage())}</div>
       <div class="preview-value">${app.path}</div>
     </div>
+
+    ${clipboardPreview}
   `;
+
+  if (app.kind === "Clipboard" && app.entryId) {
+    const deleteButton = document.getElementById("clipboard-delete-btn");
+    deleteButton?.addEventListener("click", async () => {
+      const ok = await deleteClipboardItemFromSystem(app.entryId!);
+      if (!ok) return;
+
+      filteredApps = filteredApps.filter((x) => x.entryId !== app.entryId);
+      if (selectedIndex >= filteredApps.length) {
+        selectedIndex = Math.max(0, filteredApps.length - 1);
+      }
+      renderSearchResultsAndPreview();
+    });
+  }
 }
 
 export function getSearchView(): string {
+  const lang = getCurrentLanguage();
+
   return `
     <div id="app"> <div class="search-container">
-          <input type="text" id="search-bar" placeholder="Search apps..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" autofocus />
+          <input type="text" id="search-bar" placeholder="${t("search.placeholder", lang)}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" autofocus />
       </div>
       <div class="content-container">
           <div id="results-list" class="results-list"></div>
           <div id="preview-pane" class="preview-pane"></div>
       </div>
       <div class="footer">
-          <div><b>Tab/Shift+Tab</b> move &nbsp; • &nbsp; <b>Enter</b> open &nbsp;</div>
+          <div>${t("search.footerGuide", lang)}</div>
       </div>
+      <div class="footer-credit">made by mercury</div>
     </div>
   `;
 }
@@ -146,13 +259,21 @@ export async function initSearchLogic(_navigate: (path: any) => void) {
   // 2. Xử lý gõ phím tìm kiếm
   let pendingFrame: number | null = null;
   const handleSearch = debounce((query: string) => {
+    const requestId = ++searchRequestId;
+
     if (pendingFrame !== null) {
       cancelAnimationFrame(pendingFrame);
     }
 
-    pendingFrame = requestAnimationFrame(() => {
-      filteredApps = searchApps(query);
-      selectedIndex = 0; // Reset vị trí chọn về đầu tiên
+    pendingFrame = requestAnimationFrame(async () => {
+      const results = await searchWithPrefix(query);
+      if (requestId !== searchRequestId) {
+        pendingFrame = null;
+        return;
+      }
+
+      filteredApps = results;
+      selectedIndex = 0;
       renderSearchResultsAndPreview();
       pendingFrame = null;
     });
@@ -162,6 +283,27 @@ export async function initSearchLogic(_navigate: (path: any) => void) {
 
   // LẮNG NGHE ĐIỀU HƯỚNG BÀN PHÍM
   searchInput.addEventListener("keydown", async (e) => {
+    const selected = filteredApps[selectedIndex];
+
+    if (
+      e.ctrlKey &&
+      e.key.toLowerCase() === "d" &&
+      selected?.kind === "Clipboard"
+    ) {
+      e.preventDefault();
+      if (!selected.entryId) return;
+
+      const ok = await deleteClipboardItemFromSystem(selected.entryId);
+      if (!ok) return;
+
+      filteredApps = filteredApps.filter((x) => x.entryId !== selected.entryId);
+      if (selectedIndex >= filteredApps.length) {
+        selectedIndex = Math.max(0, filteredApps.length - 1);
+      }
+      renderSearchResultsAndPreview();
+      return;
+    }
+
     const total = filteredApps.length;
     if (total === 0) return;
 
@@ -179,6 +321,10 @@ export async function initSearchLogic(_navigate: (path: any) => void) {
       e.preventDefault();
       const selectedApp = filteredApps[selectedIndex];
       if (selectedApp) {
+        if (selectedApp.kind === "Clipboard") {
+          return;
+        }
+
         await launchApp(selectedApp.path);
         searchInput.value = "";
         resetSearchUI();

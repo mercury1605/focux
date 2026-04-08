@@ -1,57 +1,81 @@
 # Focux
 
-Focux is a desktop launcher built with Tauri, Rust, TypeScript, and Vite.
+Focux is a keyboard-first desktop launcher built with Tauri 2, Rust, TypeScript, and Vite.
 
-It scans installed apps, supports keyboard-first navigation, and provides a clean glass-style UI.
+It focuses on fast local search, modern glass-style UI, and practical daily workflows (apps, folders, clipboard, and settings).
 
-## Project Status
+## Current Features
 
-⚠️ This repository is **still under active development**. Features, structure, and APIs may change.
+- App search with fuzzy matching
+- Folder mode with `@d` prefix
+  - Background indexing
+  - Ranking by name relevance + modified time
+- Clipboard mode with `@c` prefix
+  - Text/image preview
+  - Delete item with button or `Ctrl + D`
+- Windows icon extraction with cache and shortcut target resolution (`.lnk`)
+- Settings screen with 3 tabs
+  - Appearance: text color controls + theme
+  - Advanced: background image, app font, indexing limits, language, launch with Windows, config import/export
+  - Shortcut: key guide
+- Language support: English / Vietnamese
+- Local app storage for user assets and config
+  - Config JSON stored in app data
+  - Uploaded background/font files copied into app asset folders
 
 ## Tech Stack
 
-- Tauri 2 (desktop shell)
-- Rust (system commands and app scanning)
+- Tauri 2
+- Rust (backend commands, indexing, clipboard, storage)
 - TypeScript (UI logic)
-- Vite (frontend tooling)
+- Vite
+- CSS (custom UI styling)
 
-## Quick Start
+## Run Locally
 
 Prerequisites:
 
 - Node.js 18+
-- Rust toolchain (stable)
+- Rust stable
 - Tauri prerequisites for your OS
 
-Install and run:
+Development:
 
 1. `npm install`
 2. `npm run tauri dev`
 
-Build production app:
+Build:
 
 1. `npm run build`
 2. `npm run tauri build`
 
-## Folder Structure
+## Keyboard Shortcuts
+
+- `Alt + Space`: show/hide launcher
+- `Ctrl + S` (default): open settings (customizable in app)
+- `Tab` / `Shift + Tab`: move selection
+- `Enter`: open selected app/folder
+- `Ctrl + D`: delete selected clipboard item in `@c`
+- `Esc`: hide launcher
+
+## Project Structure
 
 ```text
 focux/
-├── src-tauri/                # Rust + Tauri backend
+├── src-tauri/
 │   ├── Cargo.toml
 │   ├── tauri.conf.json
 │   └── src/
-│       ├── lib.rs            # Tauri setup / commands registration
-│       ├── commands/         # Invokable commands from frontend
-│       ├── system/           # App scanning / icon extraction / OS logic
-│       └── utils/
-├── src/                      # Frontend (TypeScript + CSS)
+│       ├── lib.rs
+│       ├── commands/
+│       └── system/
+├── src/
 │   ├── main.ts
 │   ├── views/
 │   ├── components/
 │   ├── services/
-│   ├── utils/
-│   └── styles/
+│   ├── styles/
+│   └── utils/
 ├── index.html
 ├── package.json
 └── vite.config.ts
@@ -59,5 +83,5 @@ focux/
 
 ## Notes
 
-- Window behavior and UI constants are configured in frontend constants and Tauri config.
-- Generated artifacts are excluded via .gitignore (node_modules, dist, and Tauri/Rust build output).
+- User config and copied assets are stored under app data directory (`com.nguyen.focux`).
+- Build artifacts and generated files are excluded by `.gitignore`.
