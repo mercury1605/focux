@@ -239,3 +239,80 @@ pub fn delete_clipboard_item(entry_id: &str) -> Result<bool, String> {
     guard.entries.retain(|e| e.id != entry_id);
     Ok(guard.entries.len() != before)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn build_name_for_text_and_image() {
+        let text = ClipboardPayload::Text("Hello world\nnext line".to_string());
+        let image = ClipboardPayload::ImageDataUrl("data:image/png;base64,AA==".to_string());
+
+        assert_eq!(build_name(&text), "Hello world");
+        assert_eq!(build_name(&image), "Clipboard Image");
+    }
+
+    #[test]
+    fn payload_char_count_counts_text_only() {
+        let text = ClipboardPayload::Text("abc123".to_string());
+        let image = ClipboardPayload::ImageDataUrl("data:image/png;base64,AA==".to_string());
+
+        assert_eq!(payload_char_count(&text), 6);
+        assert_eq!(payload_char_count(&image), 0);
+    }
+
+    #[test]
+    fn entry_matches_query_for_text_and_image() {
+        let text_entry = ClipboardEntry {
+            id: "1".into(),
+            modified_unix: 0,
+            fingerprint: 1,
+            payload: ClipboardPayload::Text("Notion Notes".into()),
+        };
+        let image_entry = ClipboardEntry {
+            id: "2".into(),
+            modified_unix: 0,
+            fingerprint: 2,
+            payload: ClipboardPayload::ImageDataUrl("data:image/png;base64,AA==".into()),
+        };
+
+        assert!(entry_matches_query(&text_entry, "notion"));
+        assert!(!entry_matches_query(&text_entry, "chrome"));
+        assert!(entry_matches_query(&image_entry, "image"));
+        assert!(entry_matches_query(&image_entry, "clipboard"));
+    }
+
+    #[test]
+    fn push_history_deduplicates_latest_and_respects_max_len() {
+        let mut state = ClipboardState::default();
+
+        push_history(
+            &mut state,
+            ClipboardPayload::Text("same".into()),
+            hash_text("same"),
+        );
+        push_history(
+            &mut state,
+            ClipboardPayload::Text("same".into()),
+            hash_text("same"),
+        );
+        assert_eq!(state.entries.len(), 1);
+
+        for i in 0..(MAX_CLIPBOARD_HISTORY + 10) {
+            let text = format!("item-{i}");
+            let fp = hash_text(&text);
+            push_history(&mut state, ClipboardPayload::Text(text), fp);
+        }
+
+        assert_eq!(state.entries.len(), MAX_CLIPBOARD_HISTORY);
+    }
+
+    #[test]
+    fn image_to_data_url_generates_png_prefix() {
+        // 1x1 RGBA pixel (red)
+        let bytes = vec![255_u8, 0, 0, 255];
+        let out = image_to_data_url(&bytes, 1, 1).expect("data url");
+        assert!(out.starts_with("data:image/png;base64,"));
+    }
+}

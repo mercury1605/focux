@@ -5,6 +5,7 @@ use crate::system::config_store::{
     load_config_json, save_background_image_asset, save_config_json, save_font_asset,
 };
 use crate::system::folders::{search_folders, set_folder_index_options};
+use crate::system::icon::get_icon_base64_cached;
 use std::process::Command;
 use tauri::AppHandle;
 use tauri_plugin_autostart::ManagerExt;
@@ -14,6 +15,11 @@ pub fn fetch_apps() -> Result<Vec<AppInfo>, String> {
     // Gọi hàm từ tầng system
     let apps = get_installed_apps();
     Ok(apps)
+}
+
+#[tauri::command]
+pub fn get_app_icon_cmd(path: String) -> Result<Option<String>, String> {
+    Ok(get_icon_base64_cached(&path))
 }
 
 #[tauri::command]

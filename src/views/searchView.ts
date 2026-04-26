@@ -7,6 +7,7 @@ import {
   AppInfo,
   deleteClipboardItemFromSystem,
   fetchAppsFromSystem,
+  getAppIconFromSystem,
   launchApp,
   searchClipboardFromSystem,
   searchFoldersFromSystem,
@@ -28,8 +29,57 @@ let filteredApps: AppInfo[] = []; // Chứa app đang hiển thị
 let selectedIndex = 0; // Vị trí đang highlight
 let appSearchIndex: Fuse<AppInfo> | null = null;
 let searchRequestId = 0;
+const iconFetchAttempted = new Set<string>();
 
 const MAX_VISIBLE_RESULTS = 40;
+
+function showCopyToast() {
+  const existing = document.getElementById("copy-toast");
+  existing?.remove();
+
+  const toast = document.createElement("div");
+  toast.id = "copy-toast";
+  toast.className = "app-toast";
+  toast.innerHTML = `
+    <span class="app-toast-icon">✓</span>
+    <span>${t("search.copySuccess", getCurrentLanguage())}</span>
+  `;
+
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add("show"));
+
+  setTimeout(() => {
+    toast.classList.remove("show");
+    setTimeout(() => toast.remove(), 220);
+  }, 1600);
+}
+
+async function copySelectedClipboardPreview(item: AppInfo): Promise<boolean> {
+  if (item.kind !== "Clipboard") return false;
+
+  try {
+    if (item.clipboardType === "image" && item.clipboardImageDataUrl) {
+      if (
+        typeof ClipboardItem !== "undefined" &&
+        navigator.clipboard?.write != null
+      ) {
+        const response = await fetch(item.clipboardImageDataUrl);
+        const blob = await response.blob();
+        const data: Record<string, Blob> = { [blob.type || "image/png"]: blob };
+        await navigator.clipboard.write([new ClipboardItem(data)]);
+      } else {
+        await navigator.clipboard.writeText(item.clipboardImageDataUrl);
+      }
+      return true;
+    }
+
+    const text = item.clipboardText ?? "";
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function formatResultSize(sizeBytes?: number): string {
   if (sizeBytes == null || Number.isNaN(sizeBytes)) {
@@ -133,6 +183,53 @@ function renderSearchResultsAndPreview() {
   const active = renderResultsList("results-list", filteredApps, selectedIndex);
   renderPreviewPane(active);
   scrollActiveResultIntoView();
+  void hydrateVisibleAppIcons();
+}
+
+async function hydrateVisibleAppIcons() {
+  const targets = filteredApps
+    .filter((app) => app.kind === "App" && !app.icon && !!app.path)
+    .filter((app) => !iconFetchAttempted.has(app.path))
+    .slice(0, 10);
+
+  if (targets.length === 0) return;
+
+  targets.forEach((app) => iconFetchAttempted.add(app.path));
+
+  const loaded = await Promise.all(
+    targets.map(async (app) => ({
+      path: app.path,
+      icon: await getAppIconFromSystem(app.path),
+    })),
+  );
+
+  let changed = false;
+  for (const item of loaded) {
+    if (!item.icon) continue;
+
+    for (const app of allApps) {
+      if (app.path === item.path && !app.icon) {
+        app.icon = item.icon;
+      }
+    }
+
+    for (const app of filteredApps) {
+      if (app.path === item.path && !app.icon) {
+        app.icon = item.icon;
+        changed = true;
+      }
+    }
+  }
+
+  if (changed) {
+    const active = renderResultsList(
+      "results-list",
+      filteredApps,
+      selectedIndex,
+    );
+    renderPreviewPane(active);
+    scrollActiveResultIntoView();
+  }
 }
 
 function renderPreviewPane(app: AppInfo | null) {
@@ -284,6 +381,19 @@ export async function initSearchLogic(_navigate: (path: any) => void) {
   // LẮNG NGHE ĐIỀU HƯỚNG BÀN PHÍM
   searchInput.addEventListener("keydown", async (e) => {
     const selected = filteredApps[selectedIndex];
+
+    if (
+      e.ctrlKey &&
+      e.key.toLowerCase() === "c" &&
+      selected?.kind === "Clipboard"
+    ) {
+      e.preventDefault();
+      const ok = await copySelectedClipboardPreview(selected);
+      if (ok) {
+        showCopyToast();
+      }
+      return;
+    }
 
     if (
       e.ctrlKey &&
