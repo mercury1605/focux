@@ -477,3 +477,96 @@ pub fn search_folders(query: &str) -> Result<Vec<AppInfo>, String> {
 
     Ok(result)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temp_test_dir(prefix: &str) -> String {
+        let uniq = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        let path = std::env::temp_dir().join(format!("{}_{}", prefix, uniq));
+        let _ = fs::create_dir_all(&path);
+        path.to_string_lossy().to_string()
+    }
+
+    #[test]
+    fn should_skip_known_system_or_build_dirs() {
+        assert!(should_skip_dir_name("Windows"));
+        assert!(should_skip_dir_name("node_modules"));
+        assert!(should_skip_dir_name(".git"));
+        assert!(!should_skip_dir_name("MyNotes"));
+    }
+
+    #[test]
+    fn set_folder_index_options_clamps_values() {
+        set_folder_index_options(0, 100).expect("set options should work");
+
+        let depth = *folder_index_depth().read().expect("depth lock");
+        let limit = *folder_index_limit().read().expect("limit lock");
+        assert_eq!(depth, 1);
+        assert_eq!(limit, 2_000);
+
+        set_folder_index_options(999, 9_999_999).expect("set options should work");
+        let depth = *folder_index_depth().read().expect("depth lock");
+        let limit = *folder_index_limit().read().expect("limit lock");
+        assert_eq!(depth, 20);
+        assert_eq!(limit, 200_000);
+    }
+
+    #[test]
+    fn match_rank_prioritizes_exact_then_prefix_then_contains() {
+        let q = "focux";
+        let child_marker = "\\focux\\";
+
+        let exact = FolderEntry {
+            name: "focux".into(),
+            path: "C:\\work\\focux".into(),
+            name_lower: "focux".into(),
+            path_lower: "c:\\work\\focux".into(),
+            modified_unix: 1,
+        };
+        let starts = FolderEntry {
+            name: "focux-src".into(),
+            path: "C:\\work\\focux-src".into(),
+            name_lower: "focux-src".into(),
+            path_lower: "c:\\work\\focux-src".into(),
+            modified_unix: 1,
+        };
+        let contains = FolderEntry {
+            name: "my-focux-project".into(),
+            path: "C:\\work\\my-focux-project".into(),
+            name_lower: "my-focux-project".into(),
+            path_lower: "c:\\work\\my-focux-project".into(),
+            modified_unix: 1,
+        };
+
+        assert_eq!(match_rank(&exact, q, child_marker), 0);
+        assert_eq!(match_rank(&starts, q, child_marker), 1);
+        assert_eq!(match_rank(&contains, q, child_marker), 2);
+    }
+
+    #[test]
+    fn collect_folder_entries_respects_depth_and_limit() {
+        let root = temp_test_dir("focux_folders_test");
+        let level1 = Path::new(&root).join("alpha");
+        let level2 = level1.join("beta");
+        let level3 = level2.join("gamma");
+        fs::create_dir_all(&level3).expect("create nested dirs");
+
+        let roots = vec![root.clone()];
+
+        let depth_1 = collect_folder_entries(&roots, Some(1), 100);
+        assert!(depth_1.iter().any(|e| e.name == "alpha"));
+        assert!(!depth_1.iter().any(|e| e.name == "beta"));
+
+        let limit_1 = collect_folder_entries(&roots, None, 1);
+        assert_eq!(limit_1.len(), 1);
+
+        let _ = fs::remove_dir_all(root);
+    }
+}

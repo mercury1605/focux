@@ -25,6 +25,17 @@ export async function fetchAppsFromSystem(): Promise<AppInfo[]> {
   }
 }
 
+export async function getAppIconFromSystem(
+  path: string,
+): Promise<string | null> {
+  try {
+    return await invoke<string | null>("get_app_icon_cmd", { path });
+  } catch (error) {
+    console.error("Failed to get app icon:", error);
+    return null;
+  }
+}
+
 export async function searchFoldersFromSystem(
   query: string,
 ): Promise<AppInfo[]> {

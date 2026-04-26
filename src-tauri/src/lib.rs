@@ -13,6 +13,7 @@ pub fn run() {
         // ĐĂNG KÝ COMMAND TẠI ĐÂY
         .invoke_handler(tauri::generate_handler![
             app_cmd::fetch_apps,
+            app_cmd::get_app_icon_cmd,
             app_cmd::search_folders_cmd,
             app_cmd::set_folder_index_options_cmd,
             app_cmd::set_launch_with_windows_cmd,

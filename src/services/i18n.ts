@@ -44,7 +44,8 @@ type MessageKey =
   | "search.kind"
   | "search.path"
   | "search.unknownSize"
-  | "search.chars";
+  | "search.chars"
+  | "search.copySuccess";
 
 const messages: Record<LanguageCode, Record<MessageKey, string>> = {
   en: {
@@ -92,6 +93,7 @@ const messages: Record<LanguageCode, Record<MessageKey, string>> = {
     "search.path": "Path",
     "search.unknownSize": "Unknown size",
     "search.chars": "chars",
+    "search.copySuccess": "Copied successfully",
   },
   vi: {
     "settings.title": "Cài đặt",
@@ -138,6 +140,7 @@ const messages: Record<LanguageCode, Record<MessageKey, string>> = {
     "search.path": "Đường dẫn",
     "search.unknownSize": "Không rõ dung lượng",
     "search.chars": "ký tự",
+    "search.copySuccess": "Đã sao chép thành công",
   },
 };
 
